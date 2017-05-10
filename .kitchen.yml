@@ -1,26 +1,41 @@
 ---
 driver:
-  name: vagrant
+  name: ec2
+  aws_ssh_key_id: <%= ENV["EC2_SSH_KEY_NAME"] %>
+  region: us-west-2
+  availability_zone: us-west-2c
+  security_group_ids: sg-401e0e25
+  instance_type: m3.large
+  associate_public_ip: true
 
 provisioner:
   name: chef_zero
-  # You may wish to disable always updating cookbooks in CI or other testing environments.
-  # For example:
-  #   always_update_cookbooks: <%= !ENV['CI'] %>
-  always_update_cookbooks: true
 
 verifier:
   name: inspec
 
 platforms:
-  - name: ubuntu-16.04
-  - name: centos-7.2
+  - name: windows-2012r2
+    driver_config:
+      image_id: ami-2ad04f4a
+      retryable_tries: 80
+    transport:
+      ssh_key: <%= ENV["EC2_SSH_KEY_PATH"] %> # change it; this is needed so kitchen can retrieve the Admin password
 
 suites:
-  - name: default
+  - name: disable
     run_list:
-      - recipe[smb-windows::default]
+      # The test cookbook is located in test/fixtures.
+      # It is what puts secret keys, certs, etc. in place
+      - recipe[smb-windows::disable]
     verifier:
       inspec_tests:
         - test/smoke/default
-    attributes:
+  - name: enable
+    run_list:
+      # The test cookbook is located in test/fixtures.
+      # It is what puts secret keys, certs, etc. in place
+      - recipe[smb-windows::enable]
+    verifier:
+      inspec_tests:
+        - test/smoke/default
